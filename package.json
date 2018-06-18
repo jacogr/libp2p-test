@@ -1,0 +1,29 @@
+{
+  "name": "libp2p-test",
+  "version": "0.0.1",
+  "description": "Simple libp2p test interface",
+  "main": "index.js",
+  "repository": "https://github.com/jacogr/libp2p-test.git",
+  "author": "Jaco Greeff <jacogr@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js --id A --port 30444",
+    "start2": "node index.js --id B --port 30555 --nodes /ip4/127.0.0.1/tcp/30444/ipfs/Qma3GsJmB47xYuyahPZPSadh1avvxfyYQwk8R3UnFrQ6aP"
+  },
+  "dependencies": {
+    "libp2p": "^0.20.4",
+    "libp2p-kad-dht": "^0.10.0",
+    "libp2p-mdns": "^0.12.0",
+    "libp2p-mplex": "^0.7.0",
+    "libp2p-railing": "^0.9.1",
+    "libp2p-secio": "^0.10.0",
+    "libp2p-spdy": "^0.12.1",
+    "libp2p-tcp": "^0.12.0",
+    "libp2p-websockets": "^0.12.0",
+    "peer-book": "^0.8.0",
+    "peer-id": "^0.10.7",
+    "peer-info": "^0.14.1",
+    "pull-stream": "^3.6.8",
+    "yargs": "^11.0.0"
+  }
+}
