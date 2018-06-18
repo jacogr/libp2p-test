@@ -3,9 +3,11 @@
 Basic libp2p connection test.
 
 1. Clone repo
-2. Install deps (`yarn install` or `npm install`)
-3. Run first instance via `npm run start`
-4. Run second instance with `npm run start2`
+2. Install deps with `yarn install`
+3. Run first instance via `yarn run start`
+4. Run second instance with `yarn run start2`
+
+To make a connection to a pre-configured node running on `30333`, you can use `yarn run start3`
 
 Additional options can be supplied, i.e.
 

@@ -36,19 +36,19 @@ const config = {
 
 console.log(`creating listener with port=${port}, nodes=[${nodes.join(',')}]`);
 
-PeerInfo.create(listenerConfig, (error, peerInfo) => {
+PeerInfo.create(listenerConfig, (error, listenerInfo) => {
   if (error) {
     console.error('FATAL', error);
     process.exit(1);
   }
 
-  const listenerId = peerInfo.id.toB58String();
+  const listenerId = listenerInfo.id.toB58String();
   const addr = `/ip4/127.0.0.1/tcp/${port}/ipfs/${listenerId}`;
 
   console.log(`created listener ${addr}`);
-  peerInfo.multiaddrs.add(addr);
+  listenerInfo.multiaddrs.add(addr);
 
-  const node = new Libp2p(config, peerInfo, new PeerBook());
+  const node = new Libp2p(config, listenerInfo, new PeerBook());
 
   const dial = (id, peerInfo) => {
     if (peers[id]) {
@@ -57,27 +57,34 @@ PeerInfo.create(listenerConfig, (error, peerInfo) => {
 
     console.log(`dial to ${id}`);
 
-    node.dialProtocol(peerInfo, protocol, (error, conn) => {
+    node.dial(peerInfo, (error) => {
       if (error) {
         console.error(`ERROR in dial ${id}`, error);
         return;
       }
 
-      console.log(`dial success ${id}`);
+      node.dialProtocol(peerInfo, protocol, (error, conn) => {
+        if (error) {
+          console.error(`ERROR in dialProtocol ${id}`, error);
+          return;
+        }
 
-      peers[id] = conn;
+        console.log(`dial success ${id}`);
 
-      pull(
-        pull.values([`hello from ${listenerId}`]),
-        conn,
-        pull.collect((error, data) => {
-          if (error) {
-            return;
-          }
+        peers[id] = conn;
 
-          console.log(`dialer received "${data.toString()}"`);
-        })
-      )
+        pull(
+          pull.values([`hello from ${listenerId}`]),
+          conn,
+          pull.collect((error, data) => {
+            if (error) {
+              return;
+            }
+
+            console.log(`dialer received "${data.toString()}"`);
+          })
+        )
+      });
     });
   };
 
