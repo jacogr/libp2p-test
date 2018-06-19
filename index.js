@@ -1,7 +1,7 @@
 // Copyright 2018 Jaco Greeff <jacogr@gmail.com>
 // SPDX-License-Identifier: MIT
 
-process.env.DEBUG = 'libp2p*';
+process.env.DEBUG = 'mss*,libp2p*';
 
 const Libp2p = require('libp2p');
 const DHT = require('libp2p-kad-dht');
@@ -22,8 +22,7 @@ const argv = require('yargs').argv;
 const listenerConfig = { 'A': peerA, 'B': peerB }[argv.id || 'A'];
 const protocol = argv.protocol || '/substrate/dot/0';
 const port = argv.port || 30333;
-const nodes = argv.nodes ? argv.nodes.split(',') : [];
-const peers = [];
+const nodes = argv.nodes ? argv.nodes.split(',') : [];;
 const config = {
   connection: {
     crypto: [ /* secio */ ],
@@ -34,70 +33,60 @@ const config = {
   transport: [ new TCP() /* new WS() */ ]
 };
 
-console.log(`creating listener with port=${port}, nodes=[${nodes.join(',')}]`);
+console.log(`=== creating on port=${port}, nodes=[${nodes.join(',')}]`);
 
 PeerInfo.create(listenerConfig, (error, listenerInfo) => {
   if (error) {
-    console.error('FATAL', error);
+    console.error('=== FATAL', error);
     process.exit(1);
   }
 
   const listenerId = listenerInfo.id.toB58String();
   const addr = `/ip4/127.0.0.1/tcp/${port}/ipfs/${listenerId}`;
 
-  console.log(`created listener ${addr}`);
   listenerInfo.multiaddrs.add(addr);
 
+  const peers = [];
   const node = new Libp2p(config, listenerInfo, new PeerBook());
-
   const dial = (id, peerInfo) => {
     if (peers[id]) {
       return;
     }
 
-    console.log(`dial to ${id}`);
+    peers[id] = {};
 
-    node.dial(peerInfo, (error) => {
+    console.log(`=== dialling ${id}`);
+
+    node.dialProtocol(peerInfo, protocol, (error, conn) => {
       if (error) {
-        console.error(`ERROR in dial ${id}`, error);
+        delete peers[id];
+        console.error(`=== ERROR in dialling ${id}`, error);
         return;
       }
 
-      node.dialProtocol(peerInfo, protocol, (error, conn) => {
-        if (error) {
-          console.error(`ERROR in dialProtocol ${id}`, error);
-          return;
-        }
+      console.log(`=== dialled ${id}`);
 
-        console.log(`dial success ${id}`);
+      peers[id] = { conn };
 
-        peers[id] = conn;
+      pull(
+        pull.values([`hello from ${listenerId.slice(0, 5)}...${listenerId.slice(-5)}`]),
+        conn,
+        pull.collect((error, data) => {
+          if (error) {
+            console.error('=== ERROR on outgoing', error);
+            return;
+          }
 
-        pull(
-          pull.values([`hello from ${listenerId}`]),
-          conn,
-          pull.collect((error, data) => {
-            if (error) {
-              return;
-            }
-
-            console.log(`dialer received "${data.toString()}"`);
-          })
-        )
-      });
+          console.log(`=== dialer received "${data.toString()}"`);
+        })
+      )
     });
   };
-
-  node.switch.on('peer-mux-established', (peerInfo) => {
-    const id = peerInfo.id.toB58String();
-
-    console.log(`peer-mux-established ${id}`);
-  });
 
   node.on('peer:connect', (peerInfo) => {
     const id = peerInfo.id.toB58String();
 
-    console.log(`peer:connect ${id}`);
+    console.log(`=== event(peer:connect, ${id})`);
 
     dial(id, peerInfo);
   });
@@ -105,7 +94,7 @@ PeerInfo.create(listenerConfig, (error, listenerInfo) => {
   node.on('peer:disconnect', (peerInfo) => {
     const id = peerInfo.id.toB58String();
 
-    console.log(`peer:disconnect ${id}`);
+    console.log(`=== event(peer:disconnect, ${id})`);
 
     delete peers[id];
   });
@@ -113,40 +102,52 @@ PeerInfo.create(listenerConfig, (error, listenerInfo) => {
   node.on('peer:discovery', (peerInfo) => {
     const id = peerInfo.id.toB58String();
 
-    console.log(`peer:discovery ${id}`);
+    if (peers[id] === undefined) {
+      console.log(`=== event(peer:discovery, ${id})`);
 
-    dial(id, peerInfo);
+      dial(id, peerInfo);
+    }
   });
-
-  console.log('starting node instance');
 
   node.handle(
     protocol,
     (protocol, conn) => {
+      console.log('=== listener made connection');
+
       pull(
         conn,
         pull.collect((error, data) => {
           if (error) {
+            console.error('=== ERROR on listener receive', error);
             return;
           }
 
-          console.log(`listener received "${data.toString()}"`);
+          console.log(`=== listener received "${data.toString()}"`);
         })
       );
     },
+    // TODO This is just here for info, can be removed, no need to match
     (protocol, requested, cb) => {
-      console.log(`incoming protocol ${requested}`);
+      console.log(`=== incoming protocol ${requested}`);
 
       cb(null, requested.indexOf(protocol) === 0);
     }
   );
 
-  node.start((error, node) => {
+  console.log(`=== starting node ${addr}`);
+
+  // HACK stub floodsub (it is not enabled for Polkadot Rust,
+  //      however it is a default for JS, noop the start)
+  node._floodSub.start = (cb) => {
+    cb();
+  };
+
+  node.start((error, result) => {
     if (error) {
-      console.error('FATAL', error);
+      console.error('=== FATAL', error);
       process.exit(1);
     }
 
-    console.log('node started');
+    console.log(`=== node started`);
   });
 });
