@@ -1,9 +1,11 @@
 // Copyright 2018 Jaco Greeff <jacogr@gmail.com>
 // SPDX-License-Identifier: MIT
 
-process.env.DEBUG = 'mss*,libp2p*';
+// mss*,libp2p*
+process.env.DEBUG = ' mss*,libp2p*'; // ,-libp2p:dht:*';
 
 const Libp2p = require('libp2p');
+const crypto = require('libp2p-crypto');
 const DHT = require('libp2p-kad-dht');
 const mplex = require('libp2p-mplex');
 // const Multicast = require('libp2p-mdns');
@@ -12,12 +14,16 @@ const Railing = require('libp2p-railing');
 const spdy = require('libp2p-spdy');
 const TCP = require('libp2p-tcp');
 const PeerBook = require('peer-book');
+const PeerId = require('peer-id');
 const PeerInfo = require('peer-info');
 // const WS = require('libp2p-websockets');
-const peerA = require('./peerA.json');
-const peerB = require('./peerB.json');
 const pull = require('pull-stream');
 const argv = require('yargs').argv;
+
+const peerA = require('./ed25519A.json');
+const peerB = require('./ed25519B.json');
+// const peerA = require('./rsaA.json');
+// const peerB = require('./rsaB.json');
 
 const listenerConfig = { 'A': peerA, 'B': peerB }[argv.id || 'A'];
 const protocol = argv.protocol || '/substrate/dot/0';
@@ -32,6 +38,18 @@ const config = {
   discovery: [ new Railing({ list: nodes }) ],
   transport: [ new TCP() /* new WS() */ ]
 };
+
+// crypto.keys.generateKeyPair('ed25519', 512, (error, privKey) => {
+//   console.log('generateKeyPair', error, privKey);
+
+//   privKey.public.hash((err, digest) => {
+//     console.log('digest', error, digest);
+
+//     const peerId = new PeerId(digest, privKey);
+
+//     console.log('peerId', peerId, peerId.toJSON());
+//   });
+// });
 
 console.log(`=== creating on port=${port}, nodes=[${nodes.join(',')}]`);
 
@@ -88,7 +106,7 @@ PeerInfo.create(listenerConfig, (error, listenerInfo) => {
 
     console.log(`=== event(peer:connect, ${id})`);
 
-    dial(id, peerInfo);
+    // dial(id, peerInfo);
   });
 
   node.on('peer:disconnect', (peerInfo) => {

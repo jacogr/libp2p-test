@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node index.js --id A --port 30444",
     "start2": "node index.js --id B --port 30555 --nodes /ip4/127.0.0.1/tcp/30444/ipfs/Qma3GsJmB47xYuyahPZPSadh1avvxfyYQwk8R3UnFrQ6aP",
-    "start3": "node index.js --id B --port 30666 --nodes /ip4/127.0.0.1/tcp/30333/ipfs/Qma3GsJmB47xYuyahPZPSadh1avvxfyYQwk8R3UnFrQ6aP"
+    "start3": "node index.js --id B --port 30666 --nodes /ip4/127.0.0.1/tcp/30333/ipfs/QmVpCUDx7BRnvQ4xkuu7A7yiitxe3zLYwZXHkDdgjTw1n7"
   },
   "dependencies": {
     "libp2p": "^0.20.4",
